@@ -1,0 +1,86 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SPEC                                                                     
+% Copyright (C) 2011 Alwen Tiu                                             
+%
+% This program is free software; you can redistribute it and/or modify     
+% it under the terms of the GNU General Public License as published by     
+% the Free Software Foundation; either version 2 of the License, or        
+% (at your option) any later version.                                      
+%
+% This program is distributed in the hope that it will be useful,          
+% but WITHOUT ANY WARRANTY; without even the implied warranty of           
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            
+% GNU General Public License for more details.                             
+%
+% You should have received a copy of the GNU General Public License        
+% along with this code; if not, write to the Free Software Foundation,     
+% Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA             
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% Some basic predicates for list manipulations.
+
+% checking membership of a list.
+
+member X (cons X L).
+member X (cons Y L) := member X L.
+
+% deterministic member predicate: stops as soon as a match is found. 
+
+det_mem X (cons Y L) :=
+  _if (X = Y) true (det_mem X L).
+
+subset nil L.
+subset (cons X L1) L2 := det_mem X L2, subset L1 L2. 
+
+equal L R := subset L R, subset R L.
+
+append nil L L.
+append (cons X L1) L2 (cons X L3) := append L1 L2 L3. 
+
+rev nil L L.
+rev (cons X L1) L2 L3 :=
+  rev L1 (cons X L2) L3. 
+
+reverse L R := rev L nil R.
+
+select (cons X L) X L.
+select (cons Y L) X (cons Y R) := select L X R.
+
+% insert an element into a list, avoiding duplication. 
+insert X L R :=
+  _if (det_mem X L) 
+      (L = R)
+      (R = cons X L).
+
+
+ground_list L R :=
+  _if (L = nil) 
+      (R = nil)
+      (L = cons X K, ground_list K M, R = cons X M).
+
+% deterministic OR: if P is true then Q is not executed.
+
+det_or P Q := _if P true Q.
+
+% enumerating solutions to a higher-order predicate
+
+enum P L :=
+ (pi x\ P x => det_mem x R), ground_list R L.
+
+enuml P nil L. 
+enuml P (cons Y R) L := 
+  (pi x\ P Y x => det_mem x L), enuml P R L. 
+
+enum_list P R L :=
+  enuml P R X, ground_list X L.
+ 
+map P nil nil.
+map P (cons X L) (cons Y R) :=
+  P X Y, map P L R.
+
+forall P nil.
+forall P (cons X L) :=
+  P X, forall P L.
+
+

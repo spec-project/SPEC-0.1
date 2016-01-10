@@ -1,0 +1,43 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SPEC                                                                     
+% Copyright (C) 2011 Alwen Tiu                                             
+%
+% This program is free software; you can redistribute it and/or modify     
+% it under the terms of the GNU General Public License as published by     
+% the Free Software Foundation; either version 2 of the License, or        
+% (at your option) any later version.                                      
+%
+% This program is distributed in the hope that it will be useful,          
+% but WITHOUT ANY WARRANTY; without even the implied warranty of           
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            
+% GNU General Public License for more details.                             
+%
+% You should have received a copy of the GNU General Public License        
+% along with this code; if not, write to the Free Software Foundation,     
+% Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA             
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+print_term (ct X) := print X.
+print_term (var X) := print "?", print X.
+print_term (bn X) := print X.
+print_term (nm X) := print X.
+print_term (pr M N) := print "<", print_term M, print ",", print_term N, print ">".
+print_term (en M N) := print "enc(", print_term M, print ",", print_term N, print ")".
+
+plist nil.
+plist (cons X nil) := 
+  print_term X. 
+plist (cons X (cons Y L)) := 
+  print_term X, 
+  print " , ", plist (cons Y L).
+
+print_list L := print "[", plist L, print "]".
+
+psubst nil.
+psubst (cons (sub V T) nil) :=
+  print_term V, print " |--> ", print_term T.
+psubst (cons (sub V T) (cons X L)) :=
+  print_term V, print " |--> ", print_term T,
+  print " , ", psubst (cons X L). 
+
+print_subst L := print "[", psubst L, print "]".

@@ -1,0 +1,49 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SPEC                                                                     
+% Copyright (C) 2011 Alwen Tiu                                             
+%
+% This program is free software; you can redistribute it and/or modify     
+% it under the terms of the GNU General Public License as published by     
+% the Free Software Foundation; either version 2 of the License, or        
+% (at your option) any later version.                                      
+%
+% This program is distributed in the hope that it will be useful,          
+% but WITHOUT ANY WARRANTY; without even the implied warranty of           
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            
+% GNU General Public License for more details.                             
+%
+% You should have received a copy of the GNU General Public License        
+% along with this code; if not, write to the Free Software Foundation,     
+% Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA             
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#include "print_latex.def".
+
+bt2latex File nil.
+bt2latex File (cons (in M N) L) :=
+ fprint File "(", term2latex File M, fprint File "~ , ~ ", term2latex File N, fprintln File ")^i. \\ ",
+ bt2latex File L.
+bt2latex File (cons (out M N) L) := 
+ fprint File "(", term2latex File M, fprint File "~ , ~ ", term2latex File N, fprintln File ")^o. \\",
+ bt2latex File L.
+
+print_bt_latex File nil := 
+ fprintln File "$[~]$". 
+print_bt_latex File (cons X L) :=
+ fprintln File "$$", 
+ fprintln File "\begin{array}{l}", 
+ bt2latex File (cons X L), 
+ fprintln File "\end{array}", 
+ fprintln File "$$",
+ fprintln File " ", fprintln File " ". 
+
+bisim2latex File (bisim H P Q) :=
+ fprint File "Bi-trace: ", 
+ print_bt_latex File H, 
+ fprintln File " ", 
+ fprintln File "First process: ", 
+ print_proc_latex File P, 
+ fprintln File " ", 
+ fprintln File "Second process: ",
+ print_proc_latex File Q, 
+ fprintln File " ".

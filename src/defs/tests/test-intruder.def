@@ -1,0 +1,115 @@
+#include "../intruder.def".
+
+example 1 Vs Cs := 
+  Vs = (cons (var x) (cons (var y) nil)),
+  C1 = (dedl (cons (pr (nm a) (nm b)) (cons (en (nm c) (nm a)) nil)) (pr (var x) (nm b))),
+  C2 = (dedl nil (var y)),
+  Cs = cons C1 (cons C2 nil). 
+
+example 2 Vs Cs := 
+  Vs = (cons (var x) nil),
+  C1 = (dedl (cons (nm a) nil) (var x)),
+  C2 = (dedl (cons (nm a) (cons (en (nm m) (en (nm a) (nm k))) (cons (en (var x) (nm k)) nil))) (nm m)),
+  Cs = cons C1 (cons C2 nil).
+
+example 3 Vs Cs :=
+  Vs = (cons (var x) nil),
+  C1 = dedl (cons (pr (nm a) (nm b)) (cons (en (nm c) (nm a)) nil)) (nm a), 
+  Cs = cons C1 nil.
+
+example 4 Vs Cs :=
+  Vs = (cons (var x) nil),
+  C1 = dedr (cons (nm a) (cons (nm b) (cons (en (nm c) (nm a)) nil))) (pr (var x) (nm b)),
+  Cs = cons C1 nil.
+
+example 5 Vs Cs := 
+  Vs = (cons (var x) nil),
+  C1 = dedr (cons (nm b) nil) (pr (var x) (nm b)),
+  Cs = cons C1 nil.
+
+example 6 Vs Cs :=
+  Vs = (cons (var x) (cons (var y) nil)),
+  C1 = dedl (cons (nm a) nil) (var x),
+  C2 = dedl (cons (en (var x) (nm a)) (cons (nm a) nil)) (var y),
+  C3 = dedl (cons (en (var x) (nm a)) (cons (nm a) (cons (nm k) nil))) (pr (var x) (var y)),
+  Cs = cons C1 (cons C2 (cons C3 nil)).
+
+example 7 Vs Cs :=
+  Vs = (cons (var x) (cons (var y) nil)),
+  C1 = dedl (cons (nm a) nil) (var x),
+  C2 = dedl (cons (en (var x) (nm a)) (cons (nm a) nil)) (pr (var x) (var y)),
+  Cs = cons C1 (cons C2 nil).
+
+example 8 Vs Cs :=
+   Vs = nil, 
+   Cs = (cons (dedl (cons (nm tt)
+               (cons (nm agent_S)
+                  (cons (nm agent_B) (cons (nm agent_A) nil))))
+         (en (pr (nm tt) (pr (nm agent_A) (nm h))) (nm n3)))
+   (cons (dedl (cons (nm tt)
+                  (cons (nm agent_S)
+                     (cons (nm agent_B) (cons (nm agent_A) nil))))
+            (en (pr (nm tt) (pr (nm agent_A) (nm h))) (nm n3)))
+      (cons (dedl (cons (nm agent_A)
+                     (cons (nm agent_B)
+                        (cons (nm agent_S)
+                           (cons (nm tt)
+                              (cons (en (pr (nm tt)
+                                           (pr (nm agent_A) (nm n4)))
+                                       (nm n3))
+                                 nil)))))
+               (nm agent_B))
+         nil))).
+
+example 9 Vs Cs := 
+  Vs = (cons (var x) nil), 
+  Cs = (cons (dedl (cons (nm a) nil) (var x))
+   (cons (dedl (cons (nm a) nil) (var x))
+      (cons (dedl (cons (nm k) (cons (en (var x) (nm a)) (cons (nm a) nil)))
+               (en (nm a) (nm k)))
+         (cons (dedl (cons (nm k)
+                        (cons (en (var x) (nm a)) (cons (nm a) nil)))
+                  (en (nm a) (nm k)))
+            (cons (dedl (cons (nm k)
+                           (cons (en (var x) (nm a)) (cons (nm a) nil)))
+                     (en (nm a) (nm k)))
+               (cons (dedl (cons (nm k)
+                              (cons (en (var x) (nm a)) (cons (nm a) nil)))
+                        (var x))
+                  (cons (dedl (cons (nm k)
+                                 (cons (en (var x) (nm a)) (cons (nm a) nil)))
+                           (pr (var x) (en (nm a) (nm k))))
+                     nil))))))).
+
+test_solve N := 
+    example N Vs Cs, 
+    print "Variables: ", print_list Vs, println " ",
+    print "Solving: ", print_list_cst Cs, println " ",
+    solve_constraints Vs Cs Sol,
+    print "Solution: ", print_subst Sol, println " ".
+
+test_trim :=
+  Vs = (cons (var x) nil), 
+  Cs = (cons (dedl (cons (nm a) nil) (var x))
+   (cons (dedl (cons (nm a) nil) (var x))
+      (cons (dedl (cons (nm k) (cons (en (var x) (nm a)) (cons (nm a) nil)))
+               (en (nm a) (nm k)))
+         (cons (dedl (cons (nm k)
+                        (cons (en (var x) (nm a)) (cons (nm a) nil)))
+                  (en (nm a) (nm k)))
+            (cons (dedl (cons (nm k)
+                           (cons (en (var x) (nm a)) (cons (nm a) nil)))
+                     (en (nm a) (nm k)))
+               (cons (dedl (cons (nm k)
+                              (cons (en (var x) (nm a)) (cons (nm a) nil)))
+                        (var x))
+                  (cons (dedl (cons (nm k)
+                                 (cons (en (var x) (nm a)) (cons (nm a) nil)))
+                           (pr (var x) (en (nm a) (nm k))))
+                     nil))))))),
+   trim_cst Cs nil Ds,
+   println " ", 
+   println "Before trim: ", 
+   print_list_cst Cs, println " ", 
+   println "After trim: ",
+   print_list_cst Ds, println " ". 

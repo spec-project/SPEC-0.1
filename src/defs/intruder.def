@@ -1,0 +1,191 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SPEC                                                                     
+% Copyright (C) 2011 Alwen Tiu                                             
+%
+% This program is free software; you can redistribute it and/or modify     
+% it under the terms of the GNU General Public License as published by     
+% the Free Software Foundation; either version 2 of the License, or        
+% (at your option) any later version.                                      
+%
+% This program is distributed in the hope that it will be useful,          
+% but WITHOUT ANY WARRANTY; without even the implied warranty of           
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            
+% GNU General Public License for more details.                             
+%
+% You should have received a copy of the GNU General Public License        
+% along with this code; if not, write to the Free Software Foundation,     
+% Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA             
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#include "uni.def".
+#include "pprint.def".
+
+
+% Get the list of variables from a deducibility constraint system.
+% Assume wellformed constraint systems, so only need to check
+% the right hand side of the constraints. 
+
+#type get_var_cst (constraint -> list tm -> list tm -> o).
+#type get_var_csts (list constraint -> list tm -> list tm -> o).
+
+get_var_cst (dedl S M) VarIn VarOut := get_var M VarIn VarOut.
+get_var_cst (dedr S M) VarIn VarOut := get_var M VarIn VarOut.
+
+get_var_csts nil VarIn VarIn.
+get_var_csts (cons C L) VarIn VarOut :=
+  get_var_cst C VarIn Vs,
+  get_var_csts L Vs VarOut.
+
+constraints_vars Cs Vars :=
+  get_var_csts Cs nil Vs,
+  reverse Vs Vars.
+  
+
+apply Subst (dedr S M) (dedr T N) :=
+  copylist Subst S T, copyterm Subst M N.
+apply Subst (dedl S M) (dedl T N) := 
+  copylist Subst S T, copyterm Subst M N.
+
+apply_list Subst nil nil.
+apply_list Subst (cons C L) (cons D R) :=
+  apply Subst C D, apply_list Subst L R.
+
+% right-hand side of a constraint
+#type rhs_cst (constraint -> tm -> o).
+
+rhs_cst (dedl S M) M.
+rhs_cst (dedr S M) M.
+
+% remove redundant constraints
+
+#type trim_cst (list constraint -> list tm -> list constraint -> o).
+
+trim_cst nil Rhs nil.
+trim_cst (cons C L) Rhs Ds :=
+  rhs_cst C M,
+  _if (M = (ct X))
+      (trim_cst L Rhs Ds)
+      (
+        _if (det_mem M Rhs) 
+            (trim_cst L Rhs Ds)
+            (trim_cst L (cons M Rhs) Cs, Ds = (cons C Cs))
+      ).
+
+#type redundant_aux (constraint -> list constraint -> o).
+
+redundant_aux C (cons D L) :=
+  _if (rhs_cst C M, rhs_cst D M)
+      true
+      (redundant_aux C L). 
+
+#type redundant (constraint -> list constraint -> o).
+
+redundant C L :=
+  _if (rhs_cst C (ct X))
+      true 
+      (redundant_aux C L).
+
+
+#type red1 (list tm -> constraint -> list constraint -> list constraint -> 
+            list constraint -> list sub_pair -> o).
+
+red1 Vs (dedr S M) Pre Post Cs Subst :=
+  unify_list Vs S M Subst,
+  append Pre Post L,
+  apply_list Subst L Cs. 
+
+#type red (num -> list tm -> constraint -> list constraint -> list constraint -> o).
+
+red 2 Vs (dedr S M) Cs Ds :=
+  (M = pr X Y ; M = en X Y),
+  Ds = (cons (dedr S X) (cons (dedr S Y) Cs)).
+
+red 3 Vs (dedl S M) Cs Ds :=
+  Ds = (cons (dedr S M) Cs).
+
+red 5 Vs (dedl S M) Cs Ds :=
+  select S (en U V) T,
+  _if (msg_type V ct_type) (T1 = T) (insert V T T1), 
+  _if (msg_type U ct_type) (T2 = T1) (insert U T1 T2), 
+  Ds = cons (dedr S V) (cons (dedl T2 M) Cs).
+
+% red 4 Vs (dedl S M) Cs Ds :=
+%   select S (pr U V) T,
+%   insert V T T1, insert U T1 T2, 
+%   Ds = (cons (dedl T2 M) Cs).
+
+#type decpr (list tm -> list tm -> o).
+
+decpr nil nil.
+decpr (cons (pr U V) L) R :=
+  _if (msg_type V ct_type) (L1 = L)  (insert V L L1), 
+  _if (msg_type U ct_type) (L2 = L1) (insert U L1 L2),
+  decpr L2 R.
+decpr (cons C L) (cons C R) :=
+  _not(C = pr U V),
+  decpr L R. 
+
+% step 4 is asyncrhonous; we can always eagerly decompose pairs. 
+
+#type iter_red4 (constraint -> constraint -> o).
+
+iter_red4 (dedl S M) (dedl T M) := decpr S T. 
+iter_red4 (dedr S M) (dedr S M).
+
+% rewriting deducibility constraints to a solved form.
+% we relax the condition of the solved form a bit; we shall
+% allow both (dedl S (var V)) and (dedr S (var V)) in the solved form.
+
+#type solved_form (constraint -> o).
+
+solved_form (dedl S (var V)).
+solved_form (dedr S (var V)).
+
+
+#type solve (list tm -> list sub_pair -> list constraint -> 
+             list constraint -> list sub_pair -> o).
+
+solve Vs Subst P nil Subst.
+solve Vs S_In Pre (cons C Post) S_Out :=
+  _if (redundant C Pre)
+      ( solve Vs S_In Pre Post S_Out)
+      (
+        _if (solved_form C)
+            (  append Pre (cons C nil) Pre1, solve Vs S_In Pre1 Post S_Out)
+            (
+             iter_red4 C D, 
+             (
+                (red1 Vs D Pre Post Cs Subst, compose Vs S_In Subst NewSubst, NewPre = nil, NewPost = Cs, Rule = 1) ;
+                (red I Vs D Post NewPost, NewSubst = S_In, NewPre = Pre, Rule = I)
+             ),
+             solve Vs NewSubst NewPre NewPost S_Out
+            )
+      ). 
+
+
+solve_constraints Vs Cs Subst :=
+  trim_cst Cs nil Ds, 
+%  println "Simplified input: ", 
+%  print_list_cst Ds, println " ",
+  id_subst Vs IdSubst, 
+  solve Vs IdSubst nil Ds Subst.
+
+
+print_cst (dedr S M) :=
+  print "(", plist S, print " |-_R ", print_term M, print ")".
+print_cst (dedl S M) :=
+  print "(", plist S, print " |- ", print_term M, print ")".
+ 
+#type plist_cst (list constraint -> o).
+
+plist_cst nil.
+plist_cst (cons X nil) := print_cst X.
+plist_cst (cons X (cons Y L)) :=
+  print_cst X,
+  print " ; ",
+  plist_cst (cons Y L).
+
+print_list_cst L := 
+  print "[", plist_cst L, print "]".
+
+

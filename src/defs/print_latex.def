@@ -1,0 +1,119 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SPEC                                                                     
+% Copyright (C) 2011 Alwen Tiu                                             
+%
+% This program is free software; you can redistribute it and/or modify     
+% it under the terms of the GNU General Public License as published by     
+% the Free Software Foundation; either version 2 of the License, or        
+% (at your option) any later version.                                      
+%
+% This program is distributed in the hope that it will be useful,          
+% but WITHOUT ANY WARRANTY; without even the implied warranty of           
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            
+% GNU General Public License for more details.                             
+%
+% You should have received a copy of the GNU General Public License        
+% along with this code; if not, write to the Free Software Foundation,     
+% Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA             
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Fprint File a process expression in LaTeX format. 
+
+#include "basic.def".
+#include "uni.def".
+#include "format.def".
+
+% Printing a term in LaTeX format. 
+term2latex File (ct X) := fprint File "{\mathrm{", fprint File X, fprint File "}}".
+term2latex File (var X) := fprint File "?", fprint File X.
+term2latex File (bn X) := fprint File X.
+term2latex File (nm X) := fprint File X.
+term2latex File (pr M N) := 
+  fprint File "\langle ", term2latex File M, fprint File ", ", 
+  term2latex File N, fprint File "\rangle".
+term2latex File (en M N) := 
+  fprint File "\mbox{enc}(", term2latex File M, 
+  fprint File ",", term2latex File N, fprint File ")".
+
+#type proc2latex_aux (F -> list tab -> proc -> o).
+
+
+proc2latex_aux File L P := 
+  _if (P = (parl R)) 
+      (
+        print_list_exp File L, fprintln File "$($ \\", 
+        proc2latex File L P, 
+        print_list_exp File L, fprintln File "$)$ \\"
+      )
+      ( proc2latex File L P ).
+
+print_nu_latex File L P := 
+  _not(P = (nu Q)), fprintln File ").$ \\", 
+  proc2latex_aux File L P. 
+
+print_nu_latex File L (nu x\ P x) :=
+  nabla x\ 
+  term2latex File (bn x), 
+  _if (P (bn x) = (nu (R x))) (fprint File ",") (true), % don't fprint File the comma if this is the last nu
+  print_nu_latex File L (P (bn x)). 
+
+
+proc2latex File L zero := print_list_exp File L, fprintln File "$0$ \\". 
+proc2latex File L (parl (cons P R)) :=
+  print_list_exp File L, fprintln File "\ \  \= \\",
+  proc2latex File (cons "\>" L) P,
+  forall 
+    (Q\
+       print_list_exp File L, fprintln File " $|$ \\",
+       proc2latex File (cons "\>" L) Q
+     )  
+     R.
+
+proc2latex File L (nu x\ P x) :=
+  print_list_exp File L, fprint File "$\nu$ \= $(", print_nu_latex File L (nu x\ P x). 
+
+proc2latex File L (match X Y P) := 
+  print_list_exp File L, fprint File "${[", term2latex File X, fprint File " = ", term2latex File Y,
+  fprintln File " ]}$ \\",
+  proc2latex_aux File L P.
+
+proc2latex File L (inp A (x\ P x)) :=
+  print_list_exp File L, 
+  fprint File "$", 
+  nabla x\ term2latex File A, fprint File "(", term2latex File (bn x), fprintln File ").$ \\", 
+  proc2latex_aux File L (P (bn x)).
+
+proc2latex File L (outp A M P) :=
+  print_list_exp File L, 
+  fprint File "$\overline{", term2latex File A, 
+  fprint File "}~\langle ~", term2latex File M, fprintln File " ~ \rangle.$ \\",
+  proc2latex_aux File L P.
+
+proc2latex File L (case M N (x\ P x)) :=
+  print_list_exp File L, 
+  nabla x\ 
+  fprint File "$\mbox{\bf case} ~ ", term2latex File M, 
+  fprint File "~ \mbox{of} ~ \mbox{enc}(", term2latex File (bn x), fprint File ",", term2latex File N, fprintln File ") ~ \mbox{\bf in }$ \\",
+  proc2latex_aux File L (P (bn x)).  
+
+proc2latex File L (let M (x\y\ P x y)) :=
+  print_list_exp File L,
+  nabla x\ nabla y\
+  fprint File "$\mbox{\bf let} ~ \langle ", term2latex File (bn x), fprint File ",", 
+  term2latex File (bn y), fprint File "\rangle = ", term2latex File M, fprintln File " ~ \mbox{\bf in }$ \\",  
+  proc2latex_aux File L (P (bn x) (bn y)). 
+
+proc2latex File L (bang P) :=
+  print_list_exp File L, 
+  fprintln File "$! ~ ($ \= \\", 
+  proc2latex File (cons "\>" L) P,
+  fprintln File "$)$ \\".
+
+print_proc_latex File P :=
+  norm P Q, 
+  fprintln File "\begin{tabbing}",
+  proc2latex File nil Q,
+  fprintln File "\end{tabbing}".
+
+
+
